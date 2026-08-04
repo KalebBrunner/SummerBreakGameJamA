@@ -1,4 +1,7 @@
 #![allow(unused)]
+
+mod grid_location;
+
 use bevy::{
     app::*,
     ecs::{
