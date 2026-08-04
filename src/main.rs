@@ -1,6 +1,7 @@
 #![allow(unused)]
 
 mod arena;
+mod fruit;
 mod grid_location;
 
 use bevy::{
