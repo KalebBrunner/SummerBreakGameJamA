@@ -17,8 +17,10 @@ pub struct FruitPlugin;
 
 impl Plugin for FruitPlugin {
     fn build(&self, app: &mut App) {
+        let fruit_config = FruitConfig { fruit_limit: 3 };
+
         app //
-            .init_resource::<FruitConfig>()
+            .insert_resource(fruit_config)
             .init_resource::<FruitStats>();
     }
 }
