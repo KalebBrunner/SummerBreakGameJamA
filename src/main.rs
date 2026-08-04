@@ -13,6 +13,8 @@ use bevy::{
     },
 };
 
+use crate::fruit::FruitPlugin;
+
 #[derive(Component)]
 struct Person;
 
@@ -39,6 +41,7 @@ fn main() {
     println!("Hello, world!");
 
     App::new()
+        .add_plugins(FruitPlugin)
         .add_systems(Startup, add_people)
         .add_systems(Update, (hello_world, greet_people))
         .run();
