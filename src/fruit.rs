@@ -1,4 +1,8 @@
 use bevy::prelude::*;
+use bevy_rand::{global::GlobalRng, plugin::EntropyPlugin, prelude::WyRand};
+use rand_core::Rng;
+
+use crate::{arena::ArenaBounds, grid_location::GridLocation};
 
 #[derive(Debug, Component)]
 pub struct Fruit {}
@@ -18,12 +22,19 @@ fn spawn_fruits(
     mut commands: Commands,
     fruit_config: Res<FruitConfig>,
     fruits: Query<&Fruit>,
+    mut rng: Single<&mut WyRand, With<GlobalRng>>,
+    arena: Single<&ArenaBounds>,
 ) {
     let fruit_count = fruits.count();
     let fruit_limit = fruit_config.fruit_limit as usize;
 
     for _ in fruit_count..fruit_limit {
-        commands.spawn((Fruit {}));
+        let x = ((rng.next_u32() >> 1) as i32) % arena.size.x;
+        let y = ((rng.next_u32() >> 1) as i32) % arena.size.y;
+        let location = IVec2 { x, y };
+        let grid_location = GridLocation { location };
+
+        commands.spawn((Fruit {}, grid_location));
     }
 }
 
@@ -31,19 +42,25 @@ pub struct FruitPlugin;
 
 impl Plugin for FruitPlugin {
     fn build(&self, app: &mut App) {
-        let fruit_config = FruitConfig { fruit_limit: 3 };
-
         app //
-            .insert_resource(fruit_config)
             .init_resource::<FruitStats>();
+
+        if !app.is_plugin_added::<EntropyPlugin<WyRand>>() {
+            app.add_plugins(EntropyPlugin::<WyRand>::default());
+        }
     }
 }
 
 #[cfg(test)]
 mod tests {
     use bevy::{ecs::system::RunSystemOnce, prelude::*};
+    use bevy_rand::{plugin::EntropyPlugin, prelude::WyRand};
 
-    use crate::fruit::{Fruit, FruitConfig, spawn_fruits};
+    use crate::{
+        arena::{ArenaBounds, spawn_arena},
+        fruit::{Fruit, FruitConfig, FruitPlugin, spawn_fruits},
+        grid_location::GridLocation,
+    };
 
     fn assert_fruit_count(
         //
@@ -66,9 +83,12 @@ mod tests {
 
         let mut app = App::new();
         app //
+            .add_plugins(FruitPlugin)
             .insert_resource(fruit_config)
-            .add_systems(Update, spawn_fruits);
+            .add_systems(Update, spawn_fruits)
+            .add_systems(Startup, spawn_arena::<5, 5>);
 
+        app.update();
         app.update();
 
         assert_fruit_count(&mut app, fruit_limit);
@@ -91,8 +111,10 @@ mod tests {
 
         let mut app = App::new();
         app //
+            .add_plugins(FruitPlugin)
             .insert_resource(fruit_config)
             .add_systems(Update, spawn_fruits);
+        app.world_mut().run_system_once(spawn_arena::<5, 5>);
 
         app.update();
 
@@ -117,5 +139,63 @@ mod tests {
         app.update();
 
         assert_fruit_count(&mut app, fruit_limit);
+    }
+
+    #[test]
+    fn spawn_fruits_at_random_locations() {
+        let fruit_limit = 10;
+        let fruit_config = FruitConfig { fruit_limit };
+
+        let mut app = App::new();
+        app //
+            .add_plugins(FruitPlugin)
+            .insert_resource(fruit_config)
+            .add_systems(Update, spawn_fruits)
+            .add_systems(Startup, spawn_arena::<5, 5>);
+
+        app.update();
+
+        let world = app.world_mut();
+        let mut fruits = world.query_filtered::<&GridLocation, With<Fruit>>();
+
+        let mut different_locations = false;
+        for [fruit_a_pos, fruit_b_pos] in fruits.iter_combinations::<2>(world) {
+            if fruit_a_pos != fruit_b_pos {
+                different_locations = true;
+
+                break;
+            }
+        }
+
+        assert!(different_locations);
+    }
+
+    #[test]
+    fn spawn_fruits_inside_arena() {
+        let fruit_limit = 100;
+        let fruit_config = FruitConfig { fruit_limit };
+
+        const X: i32 = 5;
+        const Y: i32 = 5;
+
+        let mut app = App::new();
+        app //
+            .add_plugins(FruitPlugin)
+            .insert_resource(fruit_config)
+            .add_systems(Update, spawn_fruits)
+            .add_systems(Startup, spawn_arena::<X, Y>);
+
+        app.update();
+
+        let world = app.world_mut();
+        let mut fruits = world.query_filtered::<&GridLocation, With<Fruit>>();
+
+        let mut none_outside_arena = true;
+        for fruit_pos in fruits.iter(world) {
+            assert!(fruit_pos.location.x >= 0);
+            assert!(fruit_pos.location.y >= 0);
+            assert!(fruit_pos.location.x < X);
+            assert!(fruit_pos.location.y < Y);
+        }
     }
 }
