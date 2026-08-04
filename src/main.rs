@@ -12,6 +12,7 @@ use bevy::{
         system::{Commands, Query},
     },
 };
+use bevy_rand::{plugin::EntropyPlugin, prelude::WyRand};
 
 use crate::fruit::FruitPlugin;
 
@@ -42,6 +43,7 @@ fn main() {
 
     App::new()
         .add_plugins(FruitPlugin)
+        .add_plugins(EntropyPlugin::<WyRand>::default())
         .add_systems(Startup, add_people)
         .add_systems(Update, (hello_world, greet_people))
         .run();
