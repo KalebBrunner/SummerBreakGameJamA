@@ -77,6 +77,7 @@ pub struct FruitPlugin;
 impl Plugin for FruitPlugin {
     fn build(&self, app: &mut App) {
         app //
+            .add_systems(Update, spawn_fruits)
             .init_resource::<FruitStats>();
 
         if !app.is_plugin_added::<EntropyPlugin<WyRand>>() {
@@ -120,7 +121,6 @@ mod tests {
         app //
             .add_plugins(FruitPlugin)
             .insert_resource(fruit_config)
-            .add_systems(Update, spawn_fruits)
             .add_systems(Startup, spawn_arena::<5, 5>);
 
         app.update();
@@ -147,8 +147,7 @@ mod tests {
         let mut app = App::new();
         app //
             .add_plugins(FruitPlugin)
-            .insert_resource(fruit_config)
-            .add_systems(Update, spawn_fruits);
+            .insert_resource(fruit_config);
         app.world_mut().run_system_once(spawn_arena::<5, 5>);
 
         app.update();
@@ -185,7 +184,6 @@ mod tests {
         app //
             .add_plugins(FruitPlugin)
             .insert_resource(fruit_config)
-            .add_systems(Update, spawn_fruits)
             .add_systems(Startup, spawn_arena::<5, 5>);
 
         let mut fruits = Vec::new();
@@ -231,7 +229,6 @@ mod tests {
         app //
             .add_plugins(FruitPlugin)
             .insert_resource(fruit_config)
-            .add_systems(Update, spawn_fruits)
             .add_systems(Startup, spawn_arena::<X, Y>);
 
         app.update();
@@ -257,7 +254,6 @@ mod tests {
         app //
             .add_plugins(FruitPlugin)
             .insert_resource(fruit_config)
-            .add_systems(Update, spawn_fruits)
             .add_systems(Startup, spawn_arena::<1, 1>);
 
         app.world_mut().commands().spawn(GridLocation {
@@ -278,7 +274,6 @@ mod tests {
         app //
             .add_plugins(FruitPlugin)
             .insert_resource(fruit_config)
-            .add_systems(Update, spawn_fruits)
             .add_systems(Startup, spawn_arena::<1, 1>);
 
         app.update();
