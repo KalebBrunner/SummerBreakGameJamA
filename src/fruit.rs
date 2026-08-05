@@ -143,7 +143,7 @@ mod tests {
 
     #[test]
     fn spawn_fruits_at_random_locations() {
-        let fruit_limit = 10;
+        let fruit_limit = 1;
         let fruit_config = FruitConfig { fruit_limit };
 
         let mut app = App::new();
@@ -153,17 +153,31 @@ mod tests {
             .add_systems(Update, spawn_fruits)
             .add_systems(Startup, spawn_arena::<5, 5>);
 
-        app.update();
+        let mut fruits = Vec::new();
 
-        let world = app.world_mut();
-        let mut fruits = world.query_filtered::<&GridLocation, With<Fruit>>();
+        for _ in 0..10 {
+            app.update();
+
+            let world = app.world_mut();
+            let fruit = world
+                .query_filtered::<&GridLocation, With<Fruit>>()
+                .iter(world)
+                .next()
+                .expect("fruit was not created");
+
+            fruits.push(fruit.location);
+
+            app.world_mut().run_system_once(remove_one_fruit);
+        }
 
         let mut different_locations = false;
-        for [fruit_a_pos, fruit_b_pos] in fruits.iter_combinations::<2>(world) {
-            if fruit_a_pos != fruit_b_pos {
-                different_locations = true;
+        'outer: for fruit_a_pos in fruits.iter() {
+            for fruit_b_pos in fruits.iter() {
+                if fruit_a_pos != fruit_b_pos {
+                    different_locations = true;
 
-                break;
+                    break 'outer;
+                }
             }
         }
 
