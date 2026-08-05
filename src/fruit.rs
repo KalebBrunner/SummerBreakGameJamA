@@ -77,7 +77,7 @@ pub struct FruitPlugin;
 impl Plugin for FruitPlugin {
     fn build(&self, app: &mut App) {
         app //
-            .add_systems(Update, spawn_fruits)
+            .add_systems(Update, spawn_fruits.run_if(resource_exists::<FruitConfig>))
             .init_resource::<FruitStats>();
 
         if !app.is_plugin_added::<EntropyPlugin<WyRand>>() {
@@ -279,5 +279,32 @@ mod tests {
         app.update();
 
         assert_fruit_count(&mut app, 1);
+    }
+
+    #[test]
+    fn dont_spawn_fruits_if_config_doesnt_exist() {
+        let mut app = App::new();
+        app //
+            .add_plugins(FruitPlugin)
+            .add_systems(Startup, spawn_arena::<1, 1>);
+
+        app.update();
+
+        assert_fruit_count(&mut app, 0);
+    }
+
+    #[test]
+    fn dont_spawn_fruits_if_arena_doesnt_exist() {
+        let fruit_limit = 2;
+        let fruit_config = FruitConfig { fruit_limit };
+
+        let mut app = App::new();
+        app //
+            .insert_resource(fruit_config)
+            .add_plugins(FruitPlugin);
+
+        app.update();
+
+        assert_fruit_count(&mut app, 0);
     }
 }
