@@ -9,7 +9,7 @@ fn main() {
 
     let initial_size = res_settings.small.as_uvec2();
 
-    let window_plugin = WindowPlugin {
+    let window_plugin_with_initial_settings = WindowPlugin {
         primary_window: Some(Window {
             title: "Snek".into(),
             resolution: WindowResolution::new(initial_size.x, initial_size.y),
@@ -19,7 +19,7 @@ fn main() {
         ..default()
     };
     App::new()
-        .add_plugins(DefaultPlugins.set(window_plugin))
+        .add_plugins(DefaultPlugins.set(window_plugin_with_initial_settings))
         .insert_resource(res_settings)
         .add_systems(Startup, setup_window)
         .add_systems(Update, (toggle_resolution, draw_grid))
@@ -73,8 +73,6 @@ fn setup_window(
     resolution: Res<ResolutionSettings>,
 ) {
     window.resizable = false;
-    let res = resolution.small;
-    window.resolution.set(res.x, res.y);
     commands.spawn(Camera2d);
 }
 
