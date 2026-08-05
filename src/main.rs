@@ -67,11 +67,7 @@ fn draw_grid(window: Single<&mut Window>, mut gizmos: Gizmos) {
     }
 }
 
-fn setup_window(
-    mut commands: Commands,
-    mut window: Single<&mut Window>,
-    resolution: Res<ResolutionSettings>,
-) {
+fn setup_window(mut commands: Commands, mut window: Single<&mut Window>) {
     window.resizable = false;
     commands.spawn(Camera2d);
 }
