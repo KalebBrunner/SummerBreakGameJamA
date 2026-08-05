@@ -17,24 +17,58 @@ pub struct FruitStats {
     fruits_eaten: u32,
 }
 
+fn attempt_to_spawn_fruit(
+    //
+    commands: &mut Commands,
+    existing_entities: &Vec<GridLocation>,
+    rng: &mut Single<&mut WyRand, With<GlobalRng>>,
+    arena: &ArenaBounds,
+) -> Option<GridLocation> {
+    for _ in 0..10 {
+        let x = ((rng.next_u32() >> 1) as i32) % arena.size.x;
+        let y = ((rng.next_u32() >> 1) as i32) % arena.size.y;
+        let location = IVec2 { x, y };
+        println!("fruit attempt: {}", location);
+        let grid_location = GridLocation { location };
+
+        let space_free = existing_entities
+            .into_iter()
+            .all(|existing| existing != &grid_location);
+
+        if space_free {
+            commands.spawn((Fruit {}, grid_location));
+            println!("fruit added");
+
+            return Some(grid_location);
+        }
+    }
+
+    None
+}
+
 fn spawn_fruits(
     //
     mut commands: Commands,
     fruit_config: Res<FruitConfig>,
     fruits: Query<&Fruit>,
+    existing_entities: Query<&GridLocation>,
     mut rng: Single<&mut WyRand, With<GlobalRng>>,
     arena: Single<&ArenaBounds>,
 ) {
     let fruit_count = fruits.count();
     let fruit_limit = fruit_config.fruit_limit as usize;
 
-    for _ in fruit_count..fruit_limit {
-        let x = ((rng.next_u32() >> 1) as i32) % arena.size.x;
-        let y = ((rng.next_u32() >> 1) as i32) % arena.size.y;
-        let location = IVec2 { x, y };
-        let grid_location = GridLocation { location };
+    let mut existing_entities = existing_entities
+        .iter()
+        .map(|entitiy| entitiy.to_owned())
+        .collect();
 
-        commands.spawn((Fruit {}, grid_location));
+    for _ in fruit_count..fruit_limit {
+        let result = attempt_to_spawn_fruit(&mut commands, &existing_entities, &mut rng, &arena);
+
+        if let Some(new_entity) = result {
+            existing_entities.push(new_entity);
+        }
     }
 }
 
@@ -72,6 +106,7 @@ mod tests {
             .query::<&Fruit>()
             .query(app.world())
             .count() as u32;
+        println!("{} fruits exist", fruit_count);
 
         assert_eq!(expected_fruit_count, fruit_count);
     }
@@ -211,5 +246,43 @@ mod tests {
             assert!(fruit_pos.location.x < X);
             assert!(fruit_pos.location.y < Y);
         }
+    }
+
+    #[test]
+    fn dont_spawn_fruits_on_top_of_existing_grid_location_entities() {
+        let fruit_limit = 1;
+        let fruit_config = FruitConfig { fruit_limit };
+
+        let mut app = App::new();
+        app //
+            .add_plugins(FruitPlugin)
+            .insert_resource(fruit_config)
+            .add_systems(Update, spawn_fruits)
+            .add_systems(Startup, spawn_arena::<1, 1>);
+
+        app.world_mut().commands().spawn(GridLocation {
+            location: IVec2::ZERO,
+        });
+
+        app.update();
+
+        assert_fruit_count(&mut app, 0);
+    }
+
+    #[test]
+    fn dont_spawn_fruits_on_top_of_newly_spawned_fruits() {
+        let fruit_limit = 2;
+        let fruit_config = FruitConfig { fruit_limit };
+
+        let mut app = App::new();
+        app //
+            .add_plugins(FruitPlugin)
+            .insert_resource(fruit_config)
+            .add_systems(Update, spawn_fruits)
+            .add_systems(Startup, spawn_arena::<1, 1>);
+
+        app.update();
+
+        assert_fruit_count(&mut app, 1);
     }
 }
