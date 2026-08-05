@@ -26,7 +26,6 @@ fn main() {
         .run();
 }
 
-/// Stores the various window-resolutions we can select between.
 #[derive(Resource)]
 struct ResolutionSettings {
     large: Vec2,
@@ -38,9 +37,9 @@ fn draw_grid(window: Single<&mut Window>, mut gizmos: Gizmos) {
     let height = window.height() - 2.0;
     let width = window.width() - 2.0;
 
-    let square_count = 10;
+    let square_count = 15;
 
-    let perspective_shift2 = |coord: Vec2| {
+    let translate_origin_from_topleft_to_centercenter = |coord: Vec2| {
         return vec2(coord.x - width / 2.0, coord.y - height / 2.0);
     };
 
@@ -49,8 +48,8 @@ fn draw_grid(window: Single<&mut Window>, mut gizmos: Gizmos) {
 
         let i2 = i as f32;
         gizmos.line_2d(
-            perspective_shift2(Vec2::new(spacing * i2, height)),
-            perspective_shift2(Vec2::new(spacing * i2, 0.0)),
+            translate_origin_from_topleft_to_centercenter(Vec2::new(spacing * i2, height)),
+            translate_origin_from_topleft_to_centercenter(Vec2::new(spacing * i2, 0.0)),
             Color::srgb(1.0, 0.2, 0.2),
         );
     }
@@ -60,8 +59,8 @@ fn draw_grid(window: Single<&mut Window>, mut gizmos: Gizmos) {
 
         let i2 = i as f32;
         gizmos.line_2d(
-            perspective_shift2(Vec2::new(width, spacing * i2)),
-            perspective_shift2(Vec2::new(0.0, spacing * i2)),
+            translate_origin_from_topleft_to_centercenter(Vec2::new(width, spacing * i2)),
+            translate_origin_from_topleft_to_centercenter(Vec2::new(0.0, spacing * i2)),
             Color::srgb(1.0, 0.2, 0.2),
         );
     }
@@ -72,7 +71,6 @@ fn setup_window(mut commands: Commands, mut window: Single<&mut Window>) {
     commands.spawn(Camera2d);
 }
 
-/// This system shows how to request the window to a new resolution
 fn toggle_resolution(
     keys: Res<ButtonInput<KeyCode>>,
     mut window: Single<&mut Window>,
